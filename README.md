@@ -2,11 +2,11 @@
 
 Project aimed for automatic switch of external lights.
 
-Input1: time fron NTP server
-Input2: photoresistor
+Input1: Time from NTP server.
+Input2: Photoresistor.
 
-Output1: Solid State Relay modue
+Output1: Solid state relay modue.
 
-Power Supply 220v -> 5v 0.5a
+Power Supply: 220v -> 5v, 0.5A
 
-Monitoring: Integration with Loggly.com
+Monitoring: Integration with Loggly.com, pixelview source - simple GET request. 
