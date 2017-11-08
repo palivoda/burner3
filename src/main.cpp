@@ -81,15 +81,15 @@ void loop()
 		breakTime(now(), tm);
 		int lightState = LOW;
 
-		if (voltage > 0.8 &&  //if dark
-			 (tm.Hour >= 6 && tm.Minute >= 30 ) ||   //from time
-			 (tm.Hour <= 23 && tm.Minute <= 59 )   //untill time
+		if (voltage > 1.9 &&  //if dark
+			 ((tm.Hour >= 6 && tm.Minute >= 30 ) ||   //from time
+			 (tm.Hour <= 23 && tm.Minute <= 59 ))   //untill time
 		) {
 			lightState = HIGH;
 		  Serial.println("Light ON");
 		}
 		else {
-			lightState = HIGH;
+			lightState = LOW;
 		  Serial.println("Light OFF");
 		}
 		digitalWrite(LED_BUILTIN, lightState);
@@ -99,8 +99,8 @@ void loop()
 
 		HTTPClient http;
 
-		String url = String("https://logs-01.loggly.com/inputs/7d918780-857f-44f7-be14-d1cc12b7d9a5.gif?source=pixel&");
-		url += "data=";
+		String url = String(LOGGLY_URL);
+		url += "&data=";
 		url += voltage;
 		url += "&light=";
 		url += lightState;

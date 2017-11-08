@@ -1,12 +1,12 @@
 # ESP8266 light control
 
-Project aimed for automatic switch of external lights.
+Automatic switch of external lights.
 
 Input1: Time from NTP server.
 Input2: Photoresistor.
 
-Output1: Solid state relay modue.
+Output1: 5V 1 Channel SSR G3MB-202P Solid State Relay Module 240V 2A Output with Resistive Fuse
 
-Power Supply: 220v -> 5v, 0.5A
+Power Supply: LM2596S based 220 AC to  5 DC 0.5A
 
-Monitoring: Integration with Loggly.com, pixelview source - simple GET request. 
+Monitoring: Integration with Loggly.com, pixelview source - simple GET request.
