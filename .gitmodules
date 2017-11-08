@@ -1,0 +1,9 @@
+[submodule "lib/NTPClient"]
+	path = lib/NTPClient
+	url = https://github.com/stelgenhof/NTPClient.git
+[submodule "lib/Arduino"]
+	path = lib/Arduino
+	url = https://github.com/esp8266/Arduino.git
+[submodule "lib/Time"]
+	path = lib/Time
+	url = https://github.com/PaulStoffregen/Time.git
