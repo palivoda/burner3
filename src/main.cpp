@@ -17,7 +17,7 @@ void setup() {
 
 	gotIpEventHandler = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP& ipInfo){
 		Serial.printf("Got IP: %s\r\n", IPAddress(ipInfo.ip).toString().c_str());
-		NTP.init((char *)"pool.ntp.org", UTC0900); //DEFAULT_NTP_SERVER
+		NTP.init((char *)"pool.ntp.org", UTC0200); //DEFAULT_NTP_SERVER
 	  NTP.setPollingInterval(10*60); // Poll every 10 minutes
 	});
 
@@ -29,11 +29,6 @@ void setup() {
 
 	WiFi.mode(WIFI_STA);
 	WiFi.begin(MY_WIFI_SSID, MY_WIFI_PASSWD);
-
-	while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
 
 	// --- Setup
 
@@ -61,11 +56,15 @@ void setup() {
 	digitalWrite(LED_BUILTIN, HIGH);
 }
 
+int reconnectIn = 0;
+int lightState = LOW;
 
 void loop()
 {
 
 	if (WiFi.isConnected()) {
+
+		reconnectIn = 0;
 
 		Serial.print(NTP.getTimeDate(now())); Serial.print(" - ");
 
@@ -76,20 +75,21 @@ void loop()
 		Serial.print(voltage); Serial.print("v ");
 
 
-		//logic on/off switc
+		//logic on/off switch
 		static tmElements_t tm;
 		breakTime(now(), tm);
-		int lightState = LOW;
 
-		if (voltage > 1.9 &&  //if dark
-			 ((tm.Hour >= 6 && tm.Minute >= 30 ) ||   //from time
-			 (tm.Hour <= 23 && tm.Minute <= 59 ))   //untill time
+		if (
+			 ((lightState == HIGH && voltage > 1.9) ||  //if night turn on
+		    (lightState == LOW && voltage < 1.5)) &&  //if day turn off
+			 ((tm.Hour >= 6 && tm.Minute >= 20 ) ||     //from time
+			  (tm.Hour <= 0 && tm.Minute <= 59 ))       //untill time
 		) {
-			lightState = HIGH;
+			lightState = LOW;
 		  Serial.println("Light ON");
 		}
 		else {
-			lightState = LOW;
+			lightState = HIGH;
 		  Serial.println("Light OFF");
 		}
 		digitalWrite(LED_BUILTIN, lightState);
@@ -103,7 +103,7 @@ void loop()
 		url += "&data=";
 		url += voltage;
 		url += "&light=";
-		url += lightState;
+		url += (lightState == LOW);
 
 
 		Serial.print("[HTTP] begin... ");
@@ -123,8 +123,17 @@ void loop()
 
 	}
 	else {
-		Serial.println("Offline...");
-		//TODO: try reconnect
+		Serial.print("Offline ");
+
+		// --- Reconnect WiFI each minute @ 7 second ----
+
+		reconnectIn++;
+		Serial.println(reconnectIn);
+
+		if (reconnectIn % 60 == 7) {
+			Serial.println("Reconnecting...");
+		  WiFi.reconnect();
+		}
 	}
 
 	delay(SECONDS);
