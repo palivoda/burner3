@@ -5,6 +5,9 @@
 #include <ESP8266HTTPClient.h>       //https://github.com/esp8266/Arduino
 #include "Config.h"
 
+int reconnectIn = 0;
+int lightState = LOW;
+
 void setup() {
 
 	Serial.begin(115200);
@@ -17,8 +20,9 @@ void setup() {
 
 	gotIpEventHandler = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP& ipInfo){
 		Serial.printf("Got IP: %s\r\n", IPAddress(ipInfo.ip).toString().c_str());
-		NTP.init((char *)"pool.ntp.org", UTC0200); //DEFAULT_NTP_SERVER
+		NTP.init((char *)DEFAULT_NTP_SERVER, UTC0200); //DEFAULT_NTP_SERVER
 	  NTP.setPollingInterval(10*60); // Poll every 10 minutes
+		reconnectIn = 0; //reset
 	});
 
 	disconnectedEventHandler = WiFi.onStationModeDisconnected([](const WiFiEventStationModeDisconnected& event_info){
@@ -53,20 +57,16 @@ void setup() {
 	digitalWrite(LED_BUILTIN, HIGH);
 	pinMode(PIN_LUMENS, INPUT_PULLUP);
 	pinMode(PIN_LIGHT, OUTPUT);
-	digitalWrite(LED_BUILTIN, HIGH);
+	digitalWrite(PIN_LIGHT, HIGH);
 }
-
-int reconnectIn = 0;
-int lightState = LOW;
 
 void loop()
 {
+	Serial.print(NTP.getTimeDate(now())); Serial.print(" - ");
 
 	if (WiFi.isConnected()) {
 
-		reconnectIn = 0;
-
-		Serial.print(NTP.getTimeDate(now())); Serial.print(" - ");
+		reconnectIn--;
 
 		// --- read sensors ---
 
@@ -80,10 +80,10 @@ void loop()
 		breakTime(now(), tm);
 
 		if (
-			 ((lightState == HIGH && voltage > 1.9) ||  //if night turn on
-		    (lightState == LOW && voltage < 1.5)) &&  //if day turn off
+			 ((lightState == HIGH && voltage > 1.9) ||  //if OFF turn on
+		    (lightState == LOW && voltage > 1.5)) &&  //if ON turn off level is lower
 			 ((tm.Hour >= 6 && tm.Minute >= 20 ) ||     //from time
-			  (tm.Hour <= 0 && tm.Minute <= 59 ))       //untill time
+			  (tm.Hour <= 23 && tm.Minute <= 50 ))       //until time
 		) {
 			lightState = LOW;
 		  Serial.println("Light ON");
@@ -97,29 +97,33 @@ void loop()
 
 	  //  ---  POST logs to web  ---
 
-		HTTPClient http;
+		if (reconnectIn % 15 == 0) {
 
-		String url = String(LOGGLY_URL);
-		url += "&data=";
-		url += voltage;
-		url += "&light=";
-		url += (lightState == LOW);
+			HTTPClient http;
+
+			String url = String(LOGGLY_URL);
+			url += "&data=";
+			url += voltage;
+			url += "&light=";
+			url += (lightState == LOW);
 
 
-		Serial.print("[HTTP] begin... ");
-		Serial.print(url);
-		http.begin(url, "39 1e 5f eb 58 00 95 7c fa 25 67 af d9 59 fe 70 33 62 a0 85"); //HTTPS
+			Serial.print("[HTTP] begin... ");
+			Serial.print(url);
+			http.begin(url, "39 1e 5f eb 58 00 95 7c fa 25 67 af d9 59 fe 70 33 62 a0 85"); //HTTPS
 
-		Serial.print(" get...");
-		int httpCode = http.GET();
+			Serial.print(" get...");
+			int httpCode = http.GET();
 
-		if(httpCode > 0) {
-				Serial.printf(" code: %d\n", httpCode);
-		} else {
-				Serial.printf(" get failed, error: %s\n", http.errorToString(httpCode).c_str());
+			if(httpCode > 0) {
+					Serial.printf(" code: %d\n", httpCode);
+			} else {
+					Serial.printf(" get failed, error: %s\n", http.errorToString(httpCode).c_str());
+			}
+
+			http.end();
+
 		}
-
-		http.end();
 
 	}
 	else {
