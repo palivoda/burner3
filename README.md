@@ -1,6 +1,8 @@
-# ESP8266 light control
+# ESP8266 based light control
 
 Automatic switch of external lights.
+
+Board: Wemos D1 Mini
 
 Input1: Time from NTP server.
 Input2: Photoresistor.
