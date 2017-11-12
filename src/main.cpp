@@ -82,8 +82,9 @@ void loop()
 		if (
 			 ((lightState == HIGH && voltage > 1.1)  ||                   //if OFF turn on
 		    (lightState == LOW  && voltage > 0.7)) &&                  //if ON turn off level is lower
-			 ((tm.Hour > 6  || tm.Hour == 6  && tm.Minute >= 20 ) ||     //from time
-			  (tm.Hour < 23 || tm.Hour == 23 && tm.Minute <= 50 ))       //until time
+			 ((tm.Hour > 6  && tm.Hour < 23) ||
+				 (tm.Hour == 6  && tm.Minute >= 20) ||
+				 (tm.Hour == 23 && tm.Minute <= 50 ))
 		) {
 			lightState = LOW;
 		  Serial.println("Light ON");
