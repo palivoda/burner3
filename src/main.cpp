@@ -60,6 +60,8 @@ void setup() {
 	digitalWrite(PIN_LIGHT, HIGH);
 }
 
+float voltageAvg = -1.0;
+
 void loop()
 {
 	Serial.print(NTP.getTimeDate(now())); Serial.print(" - ");
@@ -69,23 +71,43 @@ void loop()
 		reconnectIn--;
 
 		// --- read sensors ---
-
 		int sensorValue = analogRead(A0);
 		float voltage = sensorValue * (3.2 / 1023.0);
 		Serial.print(voltage); Serial.print("v ");
 
+		//average
+		if (voltageAvg == -1.0) voltageAvg = voltage;
+		else voltageAvg = (voltageAvg * 3 + voltage) * 0.25; // /4
 
 		//logic on/off switch
 		static tmElements_t tm;
 		breakTime(now(), tm);
 
-		if (
-			 ((lightState == HIGH && voltage > 1.1)  ||                   //if OFF turn on
-		    (lightState == LOW  && voltage > 0.7)) &&                  //if ON turn off level is lower
-			 ((tm.Hour > 6  && tm.Hour < 23) ||
-				 (tm.Hour == 6  && tm.Minute >= 20) ||
-				 (tm.Hour == 23 && tm.Minute <= 50 ))
-		) {
+		bool onSensor = false, onWeek = false, onHoliday = false;
+		if ( //sensor
+			(lightState == HIGH && voltageAvg > 1.4)  ||  //if OFF turn on
+			(lightState == LOW  && voltageAvg > 1.1)	//if ON turn off level is lower
+		) onSensor = true;
+		if ( //week
+			(tm.Wday == 1 || tm.Wday == 6) && // sunday, saturday
+				(tm.Hour >= 7 && tm.Hour <= 10 || tm.Hour >= 3 && tm.Hour <= 23 || tm.Hour == 1)  ||
+			(tm.Wday == 5)	&&  //friday
+				(tm.Hour >= 7 && tm.Hour <= 9 ||  tm.Hour >= 6 && tm.Hour <= 23 || tm.Hour == 1) ||
+			(tm.Wday >= 2 || tm.Wday <= 4)	&&  //weekday
+				(tm.Hour >= 7 && tm.Hour <= 9 ||  tm.Hour >= 6 && tm.Hour <= 23)
+		) onWeek = true;
+		if ( //holidays
+			tm.Month == 1 && tm.Day == 1 || tm.Month == 12 && tm.Day == 31 ||  //New Year
+			tm.Month == 2 && tm.Day == 14 ||  //valentines day
+			tm.Month == 7 && tm.Day == 7 ||  //bd
+			tm.Month == 10 && tm.Day == 31 ||  //halloween
+			tm.Month == 12 && tm.Day == 25 //christmas
+		) onHoliday = true;
+		if (tm.Year == 0) onHoliday = false; //no NTP
+		Serial.printf(" Wday=%i, Month=%i, Day=%i, Year=%i ", tm.Wday, tm.Month, tm.Day, tm.Year);
+		Serial.printf(" onSensor=%i, onWeek=%i, onHoliday=%i \n", onSensor, onWeek, onHoliday);
+
+		if (onSensor && (onWeek || onHoliday)) {
 			lightState = LOW;
 		  Serial.println("Light ON");
 		}
@@ -104,11 +126,17 @@ void loop()
 
 			String url = String(LOGGLY_URL);
 			url += "&tm=";
-		  url += tm.Hour;
+			url += tm.Hour;
 			url += ".";
 			url += tm.Minute;
-			url += "&data=";
+			url += "&onWeek=";
+			url += onWeek;
+			url += "&onHoliday=";
+			url += onHoliday;
+			url += "&v=";
 			url += voltage;
+			url += "&va=";
+			url += voltageAvg;
 			url += "&light=";
 			url += (lightState == LOW);
 
