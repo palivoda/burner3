@@ -7,3 +7,9 @@
 [submodule "lib/Time"]
 	path = lib/Time
 	url = https://github.com/PaulStoffregen/Time.git
+[submodule "lib/PubSubClient"]
+	path = lib/PubSubClient
+	url = https://github.com/knolleary/pubsubclient.git
+[submodule "lib/blynk-library"]
+	path = lib/blynk-library
+	url = https://github.com/blynkkk/blynk-library.git

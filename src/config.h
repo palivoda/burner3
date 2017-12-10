@@ -3,8 +3,10 @@
 #define LIGHT_CONTROL_CONFIG_H
 
 #define MY_WIFI_SSID "wifi"
-#define MY_WIFI_PASSWD "fifi"
-#define LOGGLY_URL "https://logs-01.loggly.com/inputs/<TOKEN>.gif?source=pixel"
+#define MY_WIFI_PASSWD "secret"
+
+#define BLYNK_TOKEN "BLINK-TOKEN-12345"
+#define BLYNK_TERMINAL_INTERVAL 3
 
 #define PIN_LUMENS 4
 #define PIN_LIGHT 5
