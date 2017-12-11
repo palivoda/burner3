@@ -13,3 +13,6 @@
 [submodule "lib/blynk-library"]
 	path = lib/blynk-library
 	url = https://github.com/blynkkk/blynk-library.git
+[submodule "lib/DTH11"]
+	path = lib/DTH11
+	url = https://github.com/adidax/dht11.git
