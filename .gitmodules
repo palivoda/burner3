@@ -16,3 +16,9 @@
 [submodule "lib/DTH11"]
 	path = lib/DTH11
 	url = https://github.com/adidax/dht11.git
+[submodule "lib/DHT-sensor-library"]
+	path = lib/DHT-sensor-library
+	url = https://github.com/adafruit/DHT-sensor-library.git
+[submodule "lib/PietteTech_DHT-8266"]
+	path = lib/PietteTech_DHT-8266
+	url = https://github.com/chaeplin/PietteTech_DHT-8266.git
