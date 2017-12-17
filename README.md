@@ -11,8 +11,15 @@ Output1: 5V 1 Channel SSR G3MB-202P Solid State Relay Module 240V 2A Output with
 
 Power Supply: LM2596S based 220 AC to  5 DC 0.5A
 
-Extras: Temperature and humidity reading with DHT11
+Extras:
+- Temperature and humidity reading with DHT22
+- Sketch update over WiFi connection
 
-Monitoring: blynk.cc with terminal widget on V1 and slider (-1 - always off, 0 - automatic, +1 - always on) widget on V2 for manul override.  
+Monitoring: Blynk.cc widgets
+- Manual override V2 slider (-1 - always off, 0 - automatic, +1 - always on) widget on V2 for manul override.  
+- Terminal control on V1 (commands: on, off, state, update)
+- Light state V3
+- Chart with Temperature (V4) and Humidity (V5)
+- Temperature text (V4)
 
 ![Switch setup photo](preview.jpg?raw=true "Switch setup")

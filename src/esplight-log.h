@@ -11,10 +11,22 @@ void log(const int text)
 	Serial.print(text);
 }
 
-void logln(const char* text, int value)
+void logln(const char* text, float value)
 {
 	log(text);
 	log(value);
+	log("\n");
+}
+
+void log(const char* text, int value)
+{
+	log(text);
+	log(value);
+}
+
+void logln(const char* text, int value)
+{
+	log(text, value);
 	log("\n");
 }
 

@@ -1,18 +1,26 @@
+#define DEBUG_ESP_HTTP_UPDATE Serial
+#define DEBUG_ESP_PORT Serial
 #include "config.h"
+#include <ESP8266httpUpdate.h>
 #include <ESP8266WiFi.h>             //https://github.com/esp8266/Arduino
 #include <NtpClient.h>               //https://github.com/stelgenhof/NTPClient
+//#define BLYNK_PRINT Serial //Blynk extra logs
 #include <BlynkSimpleEsp8266.h>  	   //https://github.com/blynkkk/blynk-library, see https://examples.blynk.cc
 //TODO: https://github.com/blynkkk/blynk-library/blob/master/examples/Export_Demo/myPlant_ESP8266/myPlant_ESP8266.ino
-//#define BLYNK_PRINT Serial //Blynk extra logs
 WidgetTerminal terminal(BLYNK_PIN_TERMINAL);
 #include "esplight-log.h"
 #include "esplight-eeprom.h"
+#include "DHT.h"                    //https://github.com/adafruit/DHT-sensor-library.git
+DHT dht(PIN_TEMP, DHT22);
+
 
 int reconnectIn = 0;
 int lightState = LIGHT_OFF;
-int sensorValue = 0;
+int lightValue = 0;
 float voltageAvg = -1.0;
 static tmElements_t tm;
+bool firmwareUpdate = false;
+
 
 BLYNK_WRITE(BLYNK_PIN_TERMINAL)
 {
@@ -20,17 +28,20 @@ BLYNK_WRITE(BLYNK_PIN_TERMINAL)
 	Serial.println(param.asStr());
 
   if (String("state") == param.asStr()) {
-		if (lightState == LIGHT_OFF) logln("LIGHT is OFF");
+    const char* MAP_WEEK_DAY[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+    const char* MAP_OVERRIDE[] = {"Manual OFF", "Auto", "Manual ON"};
+    if (lightState == LIGHT_OFF) logln("LIGHT is OFF");
 		else if (lightState == LIGHT_ON) logln("LIGHT is ON");
-		logln("Override: ", overridedeState);
-		logln("Sensor: ", sensorValue);
-		logln("Voltage(avg): ", (int)voltageAvg*1000);
-		logln("Wday: ", tm.Wday);
-		logln("Month: ", tm.Month);
-		logln("Day: ", tm.Day);
-		logln("Year: ", tm.Year);
-		logln("Hour: ", tm.Hour);
-		logln("Minute: ", tm.Minute);
+		logln("Override: ", MAP_OVERRIDE[overridedeState+1]);
+		logln("Light (V): ", lightValue);
+		logln("Light Avg. (V): ", (int)voltageAvg*1000);
+		logln("Week Day: ", MAP_WEEK_DAY[tm.Wday-1]);
+		log("Date: ", tm.Month); log("/", tm.Day); logln("/", tm.Year);
+		log("Time: ", tm.Hour); logln(":", tm.Minute);
+    logln("Temperature (C): ", (int)dht.readTemperature());
+    logln("Humidity (%%): ", (int)dht.readHumidity());
+    logln("Uptime (s): ", (int)millis() / SECONDS);
+    logln("Compiled: " __DATE__ ", " __TIME__ ", " __VERSION__);
 	}
 	else if (String("on") == param.asStr()) {
 		setOverrideState(+1);
@@ -41,14 +52,31 @@ BLYNK_WRITE(BLYNK_PIN_TERMINAL)
 	else if (String("auto") == param.asStr()) {
 		setOverrideState(0);
 	}
-	else {
-		logln("Available commands: state, on, off, auto");
+  else if (String("update") == param.asStr()) {
+
+    logln("Updating...");
+    logln(MY_FIRMWARE_URL);
+    firmwareUpdate = true;
 	}
+	else {
+		logln("Available commands: state, on, off, auto, update");
+	}
+  terminal.flush();
 }
 
 BLYNK_WRITE(BLYNK_PIN_SLIDER) //manual override
 {
 	setOverrideState(param.asInt());
+}
+
+BLYNK_READ(BLYNK_PIN_TEMP)
+{
+  Blynk.virtualWrite(BLYNK_PIN_TEMP, dht.readTemperature());
+}
+
+BLYNK_READ(BLYNK_PIN_HUMID)
+{
+  Blynk.virtualWrite(BLYNK_PIN_HUMID, dht.readHumidity());
 }
 
 void setup() {
@@ -62,15 +90,15 @@ void setup() {
 	static WiFiEventHandler gotIpEventHandler, disconnectedEventHandler;
 
 	gotIpEventHandler = WiFi.onStationModeGotIP([](const WiFiEventStationModeGotIP& ipInfo) {
-		Serial.printf("Got IP: %s\r\n", IPAddress(ipInfo.ip).toString().c_str());
+		logln("Got IP: ", IPAddress(ipInfo.ip).toString().c_str());
 		NTP.init((char *)DEFAULT_NTP_SERVER, UTC0200); //DEFAULT_NTP_SERVER
 	  NTP.setPollingInterval(10*60); // Poll every 10 minutes
 		reconnectIn = 0; //reset
 	});
 
 	disconnectedEventHandler = WiFi.onStationModeDisconnected([](const WiFiEventStationModeDisconnected& event_info) {
-		Serial.printf("Disconnected from SSID: %s\n", event_info.ssid.c_str());
-		Serial.printf("Reason: %d\n", event_info.reason);
+		logln("Disconnected from SSID: ", event_info.ssid.c_str());
+		logln("Reason: ", event_info.reason);
 		NTP.stop(); // NTP sync can be disabled to avoid sync errors
 	});
 
@@ -108,6 +136,10 @@ void setup() {
 	digitalWrite(PIN_LIGHT, LIGHT_OFF);
 	pinMode(PIN_LUMENS, INPUT_PULLUP);
 
+  // --- Setup temperature sensor
+
+  dht.begin();
+
 	// --- Setup EEPROM
 
 	EEPROM.begin(16);
@@ -122,6 +154,28 @@ void loop()
 
 		reconnectIn--;
 
+    // --- Firmware update if flag set
+
+    if (firmwareUpdate) {
+
+      firmwareUpdate = false;
+
+      HTTPUpdateResult ret = ESPhttpUpdate.update(MY_FIRMWARE_URL, "1.0", MY_FIRMWARE_HTTPS_CHECK);
+
+      switch(ret) {
+        case HTTP_UPDATE_FAILED:
+          log("Update failed (");
+          log(ESPhttpUpdate.getLastError());
+          log("): ");
+          logln(ESPhttpUpdate.getLastErrorString().c_str());
+          break;
+        case HTTP_UPDATE_NO_UPDATES:
+          logln("No updates");
+          break;
+      }
+
+    }
+
 		if (overridedeState != 0) { // manual On/Off
 			if (lightState == LIGHT_ON && overridedeState == -1) {
 				lightState = LIGHT_OFF;
@@ -135,8 +189,8 @@ void loop()
 		else { //automatic On/Off
 
 			// --- read sensors ---
-			sensorValue = analogRead(A0);
-			float voltage = sensorValue * (3.2 / 1023.0);
+			lightValue = analogRead(A0);
+			float voltage = lightValue * (3.2 / 1023.0);
 
 			//30 seconds floating average
 			if (voltageAvg == -1.0) voltageAvg = voltage;
@@ -194,9 +248,10 @@ void loop()
 		digitalWrite(PIN_LUMENS, lightState);
 
 		// loop MQTT (Blynk)
-  	Blynk.run();
 		Blynk.virtualWrite(BLYNK_PIN_LED, !lightState);
 		Blynk.virtualWrite(BLYNK_PIN_SLIDER, overridedeState);
+    Blynk.run();
+    terminal.flush();
 
 	}
 	else {
@@ -220,6 +275,5 @@ void loop()
 	}
 
 	delay(SECONDS);
-	terminal.flush();
 	Serial.flush();
 }
