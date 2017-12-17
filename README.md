@@ -22,4 +22,6 @@ Monitoring: Blynk.cc widgets
 - Chart with Temperature (V4) and Humidity (V5)
 - Temperature text (V4)
 
-![Switch setup photo](preview.jpg?raw=true "Switch setup")
+![Hardware setup photo](preview_hw.jpg?raw=true "Hardware setup")
+
+![Mobile app screenshot](preview_mobile.jpg?raw=true "Mobile app")
