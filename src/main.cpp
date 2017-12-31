@@ -33,13 +33,13 @@ BLYNK_WRITE(BLYNK_PIN_TERMINAL)
     if (lightState == LIGHT_OFF) logln("LIGHT is OFF");
 		else if (lightState == LIGHT_ON) logln("LIGHT is ON");
 		logln("Override: ", MAP_OVERRIDE[overridedeState+1]);
-		logln("Light (V): ", lightValue);
-		logln("Light Avg. (V): ", (int)voltageAvg*1000);
+		logln("Light (analog): ", lightValue);
+		logln("Light Avg. (V*100): ", (int)(voltageAvg*100));
 		logln("Week Day: ", MAP_WEEK_DAY[tm.Wday-1]);
 		log("Date: ", tm.Month); log("/", tm.Day); logln("/", tm.Year);
 		log("Time: ", tm.Hour); logln(":", tm.Minute);
     logln("Temperature (C): ", (int)dht.readTemperature());
-    logln("Humidity (%%): ", (int)dht.readHumidity());
+    logln("Humidity (%): ", (int)dht.readHumidity());
     logln("Uptime (s): ", (int)millis() / SECONDS);
     logln("Compiled: " __DATE__ ", " __TIME__ ", " __VERSION__);
 	}
@@ -77,6 +77,11 @@ BLYNK_READ(BLYNK_PIN_TEMP)
 BLYNK_READ(BLYNK_PIN_HUMID)
 {
   Blynk.virtualWrite(BLYNK_PIN_HUMID, dht.readHumidity());
+}
+
+BLYNK_READ(BLYNK_PIN_LIGHT_AVG)
+{
+  Blynk.virtualWrite(BLYNK_PIN_LIGHT_AVG, voltageAvg);
 }
 
 void setup() {
