@@ -1,4 +1,4 @@
-#define DEBUG_ESP_HTTP_UPDATE Serial
+#define DEBUG_ESP_HTTP_UPDATE
 #define DEBUG_ESP_PORT Serial
 #include "config.h"
 #include <ESP8266httpUpdate.h>
@@ -82,6 +82,7 @@ BLYNK_READ(BLYNK_PIN_HUMID)
 void setup() {
 
 	Serial.begin(115200);
+	Serial.setDebugOutput(true);
 	delay(SECONDS);
   Serial.println("Seting up...");
 
