@@ -52,6 +52,9 @@ BLYNK_WRITE(BLYNK_PIN_TERMINAL)
 	else if (String("auto") == param.asStr()) {
 		setOverrideState(0);
 	}
+	else if (String("reset") == param.asStr()) {
+		ESP.reset();
+	}
   else if (String("update") == param.asStr()) {
 
     logln("Updating...");
@@ -59,7 +62,7 @@ BLYNK_WRITE(BLYNK_PIN_TERMINAL)
     firmwareUpdate = true;
 	}
 	else {
-		logln("Available commands: state, on, off, auto, update");
+		logln("Available commands: state, on, off, auto, reset, update");
 	}
   terminal.flush();
 }
